@@ -15,8 +15,8 @@
 #ifndef Linker_H
 #define Linker_H
 
-#include "util/Js.h"
+#include "util/Pp.h"
 
-#define Linker_require(req) Js({ js.linkerDependency(req); })
+#define Linker_require(req) Pp_stmt("linkerDependency", req)
 
 #endif

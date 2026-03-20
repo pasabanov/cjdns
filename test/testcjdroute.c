@@ -19,7 +19,7 @@
 #include "util/CString.h"
 #include "memory/Allocator.h"
 #include "wire/Message.h"
-#include "util/Js.h"
+#include "util/Pp.h"
 #include "util/events/libuv/Glock.h"
 
 #include <stdio.h>
@@ -32,7 +32,7 @@
     #define testcjdroute_SUBNODE 0
 #endif
 
-Js({ return builder.config.cjdnsTest_prototypes; })
+Pp_stmt("get", "config.cjdnsTest_prototypes")
 
 typedef int (* Test)(int argc, char** argv);
 typedef void* (* FuzzTestInit)(struct Allocator* alloc, struct Random* rand);
@@ -42,20 +42,20 @@ typedef struct FuzzTest* (* MkFuzz)(struct Allocator* alloc);
 static const struct {
     Test func;
     char* name;
-} TESTS[] = { Js({ return builder.config.cjdnsTest_tests }) };
+} TESTS[] = { Pp_stmt("get", "config.cjdnsTest_tests") };
 static const int TEST_COUNT = (int) (sizeof(TESTS) / sizeof(*TESTS));
 
 static const struct {
     FuzzTestInit init;
     FuzzTest fuzz;
     char* name;
-} FUZZ_TESTS[] = { Js({ return builder.config.cjdnsTest_fuzzTests }) };
+} FUZZ_TESTS[] = { Pp_stmt("get", "config.cjdnsTest_fuzzTests") };
 static const int FUZZ_TEST_COUNT = (int) (sizeof(FUZZ_TESTS) / sizeof(*FUZZ_TESTS));
 
-static const char* FUZZ_CASES[] = { Js({ return builder.config.cjdnsTest_fuzzCases }) };
+static const char* FUZZ_CASES[] = { Pp_stmt("get", "config.cjdnsTest_fuzzCases") };
 static const int FUZZ_CASE_COUNT = (int) (sizeof(FUZZ_CASES) / sizeof(*FUZZ_CASES));
 
-Js({ builder.config.cjdnsTest_files.forEach((f) => js.linkerDependency(f)); })
+Pp_stmt("getAsDependencies", "config.cjdnsTest_files")
 
 static uint64_t runTest(Test test,
                         char* name,

@@ -18,7 +18,7 @@
 #include "interface/tuntap/TUNInterface.h"
 #include "rust/cjdns_sys/Rffi.h"
 #include "util/Linker.h"
-Linker_require("interface/tuntap/TUNInterface_" + builder.config.systemName + ".c")
+Linker_require("interface/tuntap/TUNInterface_$PLATFORM.c")
 
 Err_DEFUN TUNInterface_newImpl(
     Rffi_SocketIface_t** sout,

@@ -15,7 +15,7 @@
 #ifndef Defined_H
 #define Defined_H
 
-#include "util/Js.h"
+#include "util/Pp.h"
 
 /**
  * Preprocesses to a 1 if the macro is defined, a 0 if it is not.
@@ -28,7 +28,6 @@
  * CAUTION: Because of limitations of detection, if you `#define X X` then
  * Defined(X) will be false!
  */
-#define Defined(macro) \
-    Js_or({ return ( Js_Q macro Js_Q === ' ' + #macro + ' ' ) ? '0' : '1'; }, 1)
+#define Defined(macro) Pp_expr(1, "defined", Pp_Q ## macro ## Pp_Q, #macro)
 
 #endif

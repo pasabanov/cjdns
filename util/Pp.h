@@ -12,21 +12,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef Js_H
-#define Js_H
+#ifndef Pp_H
+#define Pp_H
 
-// Js_Q is defined directly in builder.js because
-// you cannot define ' as a macro without the compiler complaining.
+// Preprocessor which runs after the CPP as part of the build.
+// See execJs in builder.js for the list of functions.
 
-#define Js_or(x,y) y
+// Pp_Q is defined directly in builder.js because
+// you cannot define " as a macro without the compiler complaining.
 
-#define Js(x)
+#define Pp_expr(or, func, ...) or
+#define Pp_stmt(func, ...)
 
 #if !defined(__INTELLISENSE__) && !defined(BINDGEN)
-    #undef Js
-    #define Js(x) <?js do x while (0); ?>
-    #undef Js_or
-    #define Js_or(x,y) Js(x)
+    #undef Pp_expr
+    #define Pp_expr(or, ...) __CJDNS_JS_FUNC__( __VA_ARGS__ )__CJDNS_END_JS_FUNC__
+    #undef Pp_stmt
+    #define Pp_stmt(...) __CJDNS_JS_FUNC__( __VA_ARGS__ )__CJDNS_END_JS_FUNC__
 #endif
 
 #endif

@@ -164,6 +164,7 @@ module.exports.generate = function (builder, isSubnode, callback) {
                 var main = testProto + '_main';
                 cflags.push(
                     '-D', 'main='+main,
+                    '-D', 'mainName='+testProto,
                     '-D', main+'(...)='+main+'(int argc, char** argv);int '+main+'(int argc, char** argv)'
                 );
                 prototypes.push('int '+main+'(int argc, char** argv);');

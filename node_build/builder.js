@@ -272,65 +272,91 @@ const finalizeCtx = function (
     return ctx;
 };
 
-// You Were Warned
+const print = (val) => {
+    if (typeof(val) === 'object' && Array.isArray(val)) {
+        return val.join('\n');
+    }
+    return '' + val;
+}
+
 const execJs = function (js, ctx, file, fileName, callback, thisObj) {
     let res;
     let x;
     let err;
 
+    const linkerDependency = (cFile) => {
+        cFile = cFile.replaceAll('$PLATFORM', ctx.config.systemName);
+        file.links.push(cFile);
+    };
+
+    const get = (name) => {
+        if (name.indexOf('config.') === 0) {
+            return ctx.config[name.slice('config.'.length)];
+        } else {
+            return thisObj[name];
+        }
+    }
+
+    const functions = Object.freeze({
+        shortFile: (x) => '"' + x.substring(x.lastIndexOf('/')+1) + '"',
+        defined: (x, y) => x === y ? '0' : '1',
+        linkerDependency,
+        get: (name) => print(get(name)),
+        getAsString: (name) => print('"' + get(name) + '"'),
+        put: (name, ...val) => {
+            thisObj[name] = val.join('');
+        },
+        push: (name, ...val) => {
+            thisObj[name] = thisObj[name] || [];
+            thisObj[name].push(val.join(''));
+        },
+        getAsDependencies: (name) => {
+            const val = get(name);
+            if (typeof(val) === 'object' && Array.isArray(val)) {
+                for (const v of val) {
+                    linkerDependency(v);
+                }
+            } else {
+                linkerDependency(val);
+            }
+        }
+    });
+
     // # 74 "./wire/Message.h"
     js = js.replace(/\n#.*\n/g, '');
 
-    // Js_SQ Js_DQ
-    const qs = js.split('Js_Q');
+    const qs = js.split('Pp_Q');
     if (qs.length && (qs.length % 2) === 0) {
-        throw new Error("Uneven number of Js_Q, content: [" + js + "]");
+        throw new Error("Uneven number of Pp_Q, content: [" + js + "]");
     }
     for (let i = 1; i < qs.length; i += 2) {
         // escape nested quotes, they'll come back out in the final .i file
         qs[i] = qs[i].replace(/\'/g, '\\u0027');
     }
-    js = '"use strict";' + qs.join("'");
+    js = '[' + qs.join('"') + ']';
 
     const to = setTimeout(function () {
         throw new Error("Inline JS did not return after 120 seconds [" + js + "]");
     }, 120000);
 
-    nThen(function (waitFor) {
-
-        try {
-            /* jshint -W054 */ // Suppress jshint warning on Function being a form of eval
-            const func = new Function('require', 'js', 'console', 'builder', js);
-
-            const jsObj = Object.freeze({
-                async: function () {
-                    return waitFor(function (result) {
-                        res = result;
-                    });
-                },
-                linkerDependency: (cFile) => file.links.push(cFile),
-                currentFile: fileName,
-            });
-
-            x = func.call(thisObj,
-                          require,
-                          jsObj,
-                          console,
-                          ctx.builder);
-        } catch (e) {
-            clearTimeout(to);
-            console.error("Error executing: [" + js + "] in File [" + fileName + "]");
-            throw e;
+    try {
+        const jsobj = JSON.parse(js);
+        if (!Array.isArray(jsobj)) {
+            throw new Error(`jsobj: ${js} is not an array`);
         }
-
-    }).nThen(function (waitFor) {
-
-        if (err) { return; }
-        res = res || x || '';
+        const fun = functions[jsobj[0]];
+        if (!fun) {
+            throw new Error(`No function found for ${js}`);
+        }
+        x = fun(...jsobj.slice(1));
+    } catch (e) {
         clearTimeout(to);
-        process.nextTick(function () { callback(undefined, res); });
+        console.error("Error executing: [" + js + "] in File [" + fileName + "]");
+        throw e;
+    }
 
-    });
+    clearTimeout(to);
+    process.nextTick(function () { callback(undefined, x || ''); });
 };
 
 const debug = console.log;
@@ -363,22 +389,20 @@ const preprocessBlock = function (block, ctx, fileObj, fileName, callback, thisO
 };
 
 const preprocess = function (content /*:string*/, ctx, fileObj, fileName, callback) {
-    // <?js file.Test_mainFunc = "<?js return 'RootTest_'+file.RootTest_mainFunc; ?>" ?>
-    // worse:
-    // <?js file.Test_mainFunc = "<?js const done = this.async(); process.nextTick(done); ?>" ?>
+    // __CJDNS_JS_FUNC__("funcName", ...args)__CJDNS_END_JS_FUNC__
 
-    const flatArray = content.split(/(<\?js|\?>)/);
+    const flatArray = content.split(/(__CJDNS_JS_FUNC__\(|\)__CJDNS_END_JS_FUNC__)/);
     const elems = [];
     const unflatten = function (array, startAt, out) {
         let i = startAt;
         for (; i < array.length; i++) {
             if (((i - startAt) % 2) === 0) {
                 out.push(array[i]);
-            } else if (array[i] === '<?js') {
+            } else if (array[i] === '__CJDNS_JS_FUNC__(') {
                 const next = [];
                 out.push(next);
                 i = unflatten(array, i+1, next);
-            } else if (array[i] === '?>') {
+            } else if (array[i] === ')__CJDNS_END_JS_FUNC__') {
                 return i;
             }
         }

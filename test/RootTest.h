@@ -16,20 +16,19 @@
 #define RootTest_H
 
 #include "util/CString.h"
-#include "util/Js.h"
+#include "util/Pp.h"
 #include "util/events/libuv/Glock.h"
 
 #include <stdio.h>
 
 #define RootTest_toStr(x) RootTest_toStr2(x)
 #define RootTest_toStr2(x) #x
-Js({
-    this.RootTest_mainFunc = RootTest_toStr(main);
-    this.RootTest_mainName = this.RootTest_mainFunc.replace(/_main$/, '');
-})
-#define RootTest_mainName Js_or({ return '"' + this.RootTest_mainName + '"' }, "main")
+Pp_stmt("put", "RootTest_mainFunc", RootTest_toStr(main))
+Pp_stmt("put", "RootTest_mainName", RootTest_toStr(mainName))
+Pp_stmt("put", "RootTest_main", "RootTest_", RootTest_toStr(main))
 
-#define RootTest_main Js_or({ return 'RootTest_' + this.RootTest_mainFunc; }, RootTest_main)
+#define RootTest_mainName Pp_expr("main", "getAsString", "RootTest_mainName")
+#define RootTest_main Pp_expr(RootTest_main, "get", "RootTest_main")
 
 int RootTest_main(int argc, char** argv);
 int main(int argc, char** argv)
