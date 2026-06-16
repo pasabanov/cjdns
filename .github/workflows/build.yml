@@ -40,9 +40,11 @@ jobs:
         with:
           msystem: MINGW64
           update: true
-          install: mingw-w64-x86_64-gcc=16.1.0-5
+          install: >-
+            mingw-w64-x86_64-gcc=16.1.0-5
+            mingw-w64-x86_64-make=4.4.1-4
 
-      - name: Build
+      - name: Build (Ubuntu / macOS)
         if: runner.os != 'Windows'
         run: ./do
 
@@ -51,7 +53,7 @@ jobs:
         shell: msys2 {0}
         run: ./do
 
-      - name: Upload binaries (Linux / macOS)
+      - name: Upload binaries (Ubuntu / macOS)
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
